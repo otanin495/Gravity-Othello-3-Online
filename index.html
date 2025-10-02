@@ -501,9 +501,6 @@ button:disabled {
   </div>
 
 <script type="module">
-// ============================================
-// Firebase設定（ここに自分の設定を入れてください）
-// ============================================
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
@@ -554,6 +551,8 @@ myPlayerId = 'player_' + Math.random().toString(36).substr(2, 9);
 // ============================================
 async function createRoom() {
   const roomId = document.getElementById('roomIdInput').value.trim();
+  console.log('createRoom called with roomId:', roomId);
+  
   if (!roomId) {
     showError('ルームIDを入力してください');
     return;
@@ -564,92 +563,119 @@ async function createRoom() {
     return;
   }
 
-  const roomRef = ref(database, `rooms/${roomId}`);
-  const snapshot = await get(roomRef);
-  
-  if (snapshot.exists()) {
-    showError('このルームIDは既に使用されています');
-    return;
-  }
-
-  currentRoomId = roomId;
-  isHost = true;
-  myColor = 1;
-
-  await set(roomRef, {
-    host: myPlayerId,
-    guest: null,
-    boardSize: null,
-    gameState: null,
-    hostConnected: true,
-    guestConnected: false
-  });
-
-  onDisconnect(ref(database, `rooms/${roomId}/hostConnected`)).set(false);
-
-  roomListener = onValue(roomRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data && data.guest && !data.gameState) {
-      document.getElementById('waitingArea').classList.add('hidden');
-      document.getElementById('boardSelection').classList.remove('hidden');
-    } else if (data && data.gameState) {
-      loadGameState(data);
-    } else if (!data) {
-      alert('ルームが削除されました');
-      resetToRoomSetup();
+  try {
+    const roomRef = ref(database, `rooms/${roomId}`);
+    console.log('Checking if room exists...');
+    const snapshot = await get(roomRef);
+    
+    if (snapshot.exists()) {
+      showError('このルームIDは既に使用されています');
+      return;
     }
-  });
 
-  document.getElementById('roomSetup').classList.add('hidden');
-  document.getElementById('waitingArea').classList.remove('hidden');
-  document.getElementById('currentRoomId').textContent = roomId;
+    currentRoomId = roomId;
+    isHost = true;
+    myColor = 1;
+
+    console.log('Creating room...');
+    await set(roomRef, {
+      host: myPlayerId,
+      guest: null,
+      boardSize: null,
+      gameState: null,
+      hostConnected: true,
+      guestConnected: false
+    });
+    console.log('Room created successfully');
+
+    onDisconnect(ref(database, `rooms/${roomId}/hostConnected`)).set(false);
+
+    roomListener = onValue(roomRef, (snapshot) => {
+      const data = snapshot.val();
+      console.log('Room data updated:', data);
+      if (data && data.guest && !data.gameState) {
+        console.log('Guest joined, showing board selection');
+        document.getElementById('waitingArea').classList.add('hidden');
+        document.getElementById('boardSelection').classList.remove('hidden');
+      } else if (data && data.gameState) {
+        console.log('Game state found, loading game');
+        loadGameState(data);
+      } else if (!data) {
+        alert('ルームが削除されました');
+        resetToRoomSetup();
+      }
+    });
+
+    document.getElementById('roomSetup').classList.add('hidden');
+    document.getElementById('waitingArea').classList.remove('hidden');
+    document.getElementById('currentRoomId').textContent = roomId;
+    console.log('Waiting for guest...');
+  } catch (error) {
+    console.error('Error creating room:', error);
+    showError('エラー: ' + error.message);
+  }
 }
 
 async function joinRoom() {
   const roomId = document.getElementById('roomIdInput').value.trim();
+  console.log('joinRoom called with roomId:', roomId);
+  
   if (!roomId) {
     showError('ルームIDを入力してください');
     return;
   }
 
-  const roomRef = ref(database, `rooms/${roomId}`);
-  const snapshot = await get(roomRef);
-  
-  if (!snapshot.exists()) {
-    showError('ルームが見つかりません');
-    return;
-  }
-
-  const roomData = snapshot.val();
-  if (roomData.guest) {
-    showError('ルームは満員です');
-    return;
-  }
-
-  currentRoomId = roomId;
-  isHost = false;
-  myColor = -1;
-
-  await update(roomRef, {
-    guest: myPlayerId,
-    guestConnected: true
-  });
-
-  onDisconnect(ref(database, `rooms/${roomId}/guestConnected`)).set(false);
-
-  roomListener = onValue(roomRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data && data.gameState) {
-      loadGameState(data);
-    } else if (!data) {
-      alert('ルームが削除されました');
-      resetToRoomSetup();
+  try {
+    const roomRef = ref(database, `rooms/${roomId}`);
+    console.log('Checking if room exists...');
+    const snapshot = await get(roomRef);
+    
+    if (!snapshot.exists()) {
+      showError('ルームが見つかりません');
+      return;
     }
-  });
 
-  document.getElementById('roomSetup').classList.add('hidden');
-  document.getElementById('waitingArea').classList.remove('hidden');
-  document.getElementById('currentRoomId').textContent = roomId;
+    const roomData = snapshot.val();
+    console.log('Room data:', roomData);
+    
+    if (roomData.guest) {
+      showError('ルームは満員です');
+      return;
+    }
+
+    currentRoomId = roomId;
+    isHost = false;
+    myColor = -1;
+
+    console.log('Joining room...');
+    await update(roomRef, {
+      guest: myPlayerId,
+      guestConnected: true
+    });
+    console.log('Joined successfully');
+
+    onDisconnect(ref(database, `rooms/${roomId}/guestConnected`)).set(false);
+
+    roomListener = onValue(roomRef, (snapshot) => {
+      const data = snapshot.val();
+      console.log('Room data updated:', data);
+      if (data && data.gameState) {
+        console.log('Game state found, loading game');
+        loadGameState(data);
+      } else if (!data) {
+        alert('ルームが削除されました');
+        resetToRoomSetup();
+      }
+    });
+
+    document.getElementById('roomSetup').classList.add('hidden');
+    document.getElementById('waitingArea').classList.remove('hidden');
+    document.getElementById('currentRoomId').textContent = roomId;
+    console.log('Waiting for host to start game...');
+  } catch (error) {
+    console.error('Error joining room:', error);
+    showError('エラー: ' + error.message);
+  }
 }
 
 async function selectBoardSize(size) {
