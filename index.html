@@ -1077,17 +1077,43 @@ function checkGameEnd() {
 // ============================================
 // イベントリスナー
 // ============================================
-document.getElementById('createRoomBtn').addEventListener('click', createRoom);
-document.getElementById('joinRoomBtn').addEventListener('click', joinRoom);
-document.getElementById('cancelWaitBtn').addEventListener('click', leaveRoom);
-document.getElementById('leaveGameBtn').addEventListener('click', leaveRoom);
+console.log('Script loaded, setting up event listeners...');
 
-document.querySelectorAll('.size-button').forEach(btn => {
-  btn.addEventListener('click', () => selectBoardSize(parseInt(btn.dataset.size)));
-});
-
-gravityBtns.forEach(btn => btn.addEventListener('click', () => {
-  if (!animating && current === myColor) {
-    applyGravity(btn.dataset.dir);
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM loaded, attaching listeners');
+  
+  const createBtn = document.getElementById('createRoomBtn');
+  const joinBtn = document.getElementById('joinRoomBtn');
+  
+  console.log('Create button:', createBtn);
+  console.log('Join button:', joinBtn);
+  
+  if (createBtn) {
+    createBtn.addEventListener('click', () => {
+      console.log('Create button clicked!');
+      createRoom();
+    });
   }
-}));
+  
+  if (joinBtn) {
+    joinBtn.addEventListener('click', () => {
+      console.log('Join button clicked!');
+      joinRoom();
+    });
+  }
+  
+  document.getElementById('cancelWaitBtn').addEventListener('click', leaveRoom);
+  document.getElementById('leaveGameBtn').addEventListener('click', leaveRoom);
+
+  document.querySelectorAll('.size-button').forEach(btn => {
+    btn.addEventListener('click', () => selectBoardSize(parseInt(btn.dataset.size)));
+  });
+
+  gravityBtns.forEach(btn => btn.addEventListener('click', () => {
+    if (!animating && current === myColor) {
+      applyGravity(btn.dataset.dir);
+    }
+  }));
+  
+  console.log('All event listeners attached');
+});
