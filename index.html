@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gravity Othello 3 - Online</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #f0f0f0;
+  margin: 0;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.game-info {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.game-title {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.room-setup {
+  text-align: center;
+  margin-bottom: 30px;
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  max-width: 400px;
+}
+
+.room-setup h2 {
+  margin-top: 0;
+  color: #333;
+}
+
+.room-setup input {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  box-sizing: border-box;
+}
+
+.room-setup input:focus {
+  outline: none;
+  border-color: #2196F3;
+}
+
+.room-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.board-selection {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.size-button {
+  padding: 15px 30px;
+  font-size: 18px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin: 10px 0;
+  display: block;
+  width: 200px;
+  margin-left: auto;
+  margin-right: auto;
+  transition: background-color 0.3s;
+}
+
+.size-button:hover {
+  background-color: #1976D2;
+}
+
+.board-container {
+  perspective: 1000px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.board {
+  display: inline-grid;
+  gap: 2px;
+  background-color: #000000;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.board.size-4 {
+  grid-template-columns: repeat(4, 60px);
+  grid-template-rows: repeat(4, 60px);
+}
+
+.board.size-6 {
+  grid-template-columns: repeat(6, 55px);
+  grid-template-rows: repeat(6, 55px);
+}
+
+.board.size-8 {
+  grid-template-columns: repeat(8, 50px);
+  grid-template-rows: repeat(8, 50px);
+}
+
+.cell {
+  background-color: #228B22;
+  border-radius: 4px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.cell.size-4 {
+  width: 60px;
+  height: 60px;
+}
+
+.cell.size-6 {
+  width: 55px;
+  height: 55px;
+}
+
+.cell.size-8 {
+  width: 50px;
+  height: 50px;
+}
+
+.cell.valid-black {
+  background-color: #A9A9A9;
+  box-shadow: 0 0 10px rgba(169, 169, 169, 0.7);
+}
+
+.cell.valid-white {
+  background-color: #90EE90;
+  box-shadow: 0 0 10px rgba(144, 238, 144, 0.7);
+}
+
+.cell:hover.valid-black {
+  background-color: #C0C0C0;
+}
+
+.cell:hover.valid-white {
+  background-color: #98FB98;
+}
+
+.piece {
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid #333;
+  transition: all 0.2s linear;
+}
+
+.piece.size-4 {
+  width: 50px;
+  height: 50px;
+}
+
+.piece.size-6 {
+  width: 45px;
+  height: 45px;
+}
+
+.piece.size-8 {
+  width: 40px;
+  height: 40px;
+}
+
+.piece.black {
+  background-color: #000;
+}
+
+.piece.white {
+  background-color: #FFF;
+}
+
+.player-info {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.player-info p {
+  margin: 5px 0;
+}
+
+.score-display {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+
+.score-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.color-indicator {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #333;
+}
+
+.color-indicator.black {
+  background-color: #000;
+}
+
+.color-indicator.white {
+  background-color: #FFF;
+}
+
+.message {
+  font-size: 20px;
+  margin-bottom: 15px;
+  min-height: 30px;
+  text-align: center;
+  color: #333;
+}
+
+.game-over {
+  color: #d32f2f;
+  font-weight: bold;
+}
+
+.game-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 15px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.arrow-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.arrow-row button {
+  width: 45px;
+  height: 45px;
+  font-size: 20px;
+  padding: 0;
+}
+
+.bottom-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 5px;
+  min-width: 70px;
+}
+
+button:hover {
+  background-color: #1976D2;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #90CAF9;
+}
+
+.hidden {
+  display: none;
+}
+
+.error-message {
+  color: #d32f2f;
+  margin-top: 10px;
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+
+  .game-title {
+    font-size: 24px;
+  }
+
+  .message {
+    font-size: 16px;
+  }
+
+  .board.size-4 {
+    grid-template-columns: repeat(4, 45px);
+    grid-template-rows: repeat(4, 45px);
+  }
+
+  .board.size-6 {
+    grid-template-columns: repeat(6, 42px);
+    grid-template-rows: repeat(6, 42px);
+  }
+
+  .board.size-8 {
+    grid-template-columns: repeat(8, 40px);
+    grid-template-rows: repeat(8, 40px);
+  }
+
+  .cell.size-4 {
+    width: 45px;
+    height: 45px;
+  }
+
+  .cell.size-6 {
+    width: 42px;
+    height: 42px;
+  }
+
+  .cell.size-8 {
+    width: 40px;
+    height: 40px;
+  }
+
+  .piece.size-4 {
+    width: 38px;
+    height: 38px;
+  }
+
+  .piece.size-6 {
+    width: 35px;
+    height: 35px;
+  }
+
+  .piece.size-8 {
+    width: 32px;
+    height: 32px;
+  }
+
+  button {
+    font-size: 14px;
+    padding: 8px 16px;
+  }
+
+  .arrow-row button {
+    width: 34px;
+    height: 35px;
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .board.size-4 {
+    grid-template-columns: repeat(4, 40px);
+    grid-template-rows: repeat(4, 40px);
+  }
+
+  .board.size-6 {
+    grid-template-columns: repeat(6, 37px);
+    grid-template-rows: repeat(6, 37px);
+  }
+
+  .board.size-8 {
+    grid-template-columns: repeat(8, 35px);
+    grid-template-rows: repeat(8, 35px);
+  }
+
+  .cell.size-4 {
+    width: 40px;
+    height: 40px;
+  }
+
+  .cell.size-6 {
+    width: 37px;
+    height: 37px;
+  }
+
+  .cell.size-8 {
+    width: 35px;
+    height: 35px;
+  }
+
+  .piece.size-4 {
+    width: 32px;
+    height: 32px;
+  }
+
+  .piece.size-6 {
+    width: 30px;
+    height: 30px;
+  }
+
+  .piece.size-8 {
+    width: 28px;
+    height: 28px;
+  }
+}
+</style>
+</head>
+<body>
+  <div class="game-info">
+    <div class="game-title">Gravity Othello 3 - Online</div>
+  </div>
+
+  <!-- ルーム作成/参加画面 -->
+  <div id="roomSetup" class="room-setup">
+    <h2>オンライン対戦</h2>
+    <input type="text" id="roomIdInput" placeholder="ルームID（英数字）" maxlength="20">
+    <div class="room-buttons">
+      <button onclick="createRoom()">ルーム作成</button>
+      <button onclick="joinRoom()">ルーム参加</button>
+    </div>
+    <p id="roomError" class="error-message hidden"></p>
+  </div>
+
+  <!-- 盤面選択画面（ホストのみ） -->
+  <div id="boardSelection" class="board-selection hidden">
+    <p>盤面サイズを選択してください</p>
+    <button class="size-button" onclick="selectBoardSize(4)">4×4盤</button>
+    <button class="size-button" onclick="selectBoardSize(6)">6×6盤</button>
+    <button class="size-button" onclick="selectBoardSize(8)">8×8盤</button>
+  </div>
+
+  <!-- 待機画面 -->
+  <div id="waitingArea" class="room-setup hidden">
+    <h2>対戦相手を待っています...</h2>
+    <p>ルームID: <strong id="currentRoomId"></strong></p>
+    <p>このIDを相手に共有してください</p>
+    <button onclick="leaveRoom()">キャンセル</button>
+  </div>
+
+  <!-- ゲーム画面 -->
+  <div id="gameArea" class="hidden">
+    <div class="player-info">
+      <p><strong>ルームID:</strong> <span id="gameRoomId"></span></p>
+      <p><strong>あなた:</strong> <span id="yourColor"></span></p>
+      <p><strong>対戦相手:</strong> <span id="opponentStatus">接続中</span></p>
+    </div>
+
+    <div class="score-display">
+      <div class="score-item">
+        <div class="color-indicator black"></div>
+        <span id="blackCount">2</span>
+      </div>
+      <div class="score-item">
+        <div class="color-indicator white"></div>
+        <span id="whiteCount">2</span>
+      </div>
+    </div>
+
+    <div class="board-container">
+      <div id="board" class="board"></div>
+    </div>
+
+    <div class="message" id="message"></div>
+
+    <div class="game-controls">
+      <div class="arrow-row">
+        <button class="gravityBtn" data-dir="up">↑</button>
+      </div>
+      <div class="arrow-row">
+        <button class="gravityBtn" data-dir="left">←</button>
+        <button class="gravityBtn" data-dir="right">→</button>
+      </div>
+      <div class="arrow-row">
+        <button class="gravityBtn" data-dir="down">↓</button>
+      </div>
+      <div class="bottom-buttons">
+        <button id="leaveGameBtn">ゲームを退出</button>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+// ============================================
+// Firebase設定（ここに自分の設定を入れてください）
+// ============================================
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getDatabase, ref, set, onValue, update, remove, get, onDisconnect } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAcEqe3EbiYvpbNRNKZB2aP-3sQHgykPos",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
+// ============================================
+// グローバル変数
+// ============================================
+let SIZE = 8;
+let board = [];
+let current = 1;
+let animating = false;
+let boardHistory = [];
+let currentRoomId = null;
+let myPlayerId = null;
+let myColor = null; // 1: 黒, -1: 白
+let isHost = false;
+
+const boardEl = document.getElementById('board');
+const blackCountEl = document.getElementById('blackCount');
+const whiteCountEl = document.getElementById('whiteCount');
+const messageEl = document.getElementById('message');
+const gravityBtns = document.querySelectorAll('.gravityBtn');
+
+// プレイヤーIDを生成
+myPlayerId = 'player_' + Math.random().toString(36).substr(2, 9);
+
+// ============================================
+// ルーム管理
+// ============================================
+window.createRoom = async function() {
+  const roomId = document.getElementById('roomIdInput').value.trim();
+  if (!roomId) {
+    showError('ルームIDを入力してください');
+    return;
+  }
+  
+  if (!/^[a-zA-Z0-9]+$/.test(roomId)) {
+    showError('ルームIDは英数字のみ使用できます');
+    return;
+  }
+
+  const roomRef = ref(database, `rooms/${roomId}`);
+  const snapshot = await get(roomRef);
+  
+  if (snapshot.exists()) {
+    showError('このルームIDは既に使用されています');
+    return;
+  }
+
+  currentRoomId = roomId;
+  isHost = true;
+  myColor = 1; // ホストは黒
+
+  // ルーム作成
+  await set(roomRef, {
+    host: myPlayerId,
+    guest: null,
+    boardSize: null,
+    gameState: null,
+    hostConnected: true,
+    guestConnected: false
+  });
+
+  // 切断時の処理
+  onDisconnect(ref(database, `rooms/${roomId}/hostConnected`)).set(false);
+
+  // ゲストの参加を監視
+  onValue(roomRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data && data.guest && !data.gameState) {
+      // ゲストが参加したら盤面選択へ
+      document.getElementById('waitingArea').classList.add('hidden');
+      document.getElementById('boardSelection').classList.remove('hidden');
+    } else if (data && data.gameState) {
+      // ゲーム開始
+      loadGameState(data);
+    } else if (!data) {
+      // ルームが削除された
+      alert('ルームが削除されました');
+      resetToRoomSetup();
+    }
+  });
+
+  document.getElementById('roomSetup').classList.add('hidden');
+  document.getElementById('waitingArea').classList.remove('hidden');
+  document.getElementById('currentRoomId').textContent = roomId;
+};
+
+window.joinRoom = async function() {
+  const roomId = document.getElementById('roomIdInput').value.trim();
+  if (!roomId) {
+    showError('ルームIDを入力してください');
+    return;
+  }
+
+  const roomRef = ref(database, `rooms/${roomId}`);
+  const snapshot = await get(roomRef);
+  
+  if (!snapshot.exists()) {
+    showError('ルームが見つかりません');
+    return;
+  }
+
+  const roomData = snapshot.val();
+  if (roomData.guest) {
+    showError('ルームは満員です');
+    return;
+  }
+
+  currentRoomId = roomId;
+  isHost = false;
+  myColor = -1; // ゲストは白
+
+  // ゲストとして参加
+  await update(roomRef, {
+    guest: myPlayerId,
+    guestConnected: true
+  });
+
+  // 切断時の処理
+  onDisconnect(ref(database, `rooms/${roomId}/guestConnected`)).set(false);
+
+  // ゲーム状態を監視
+  onValue(roomRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data && data.gameState) {
+      loadGameState(data);
+    } else if (!data) {
+      alert('ルームが削除されました');
+      resetToRoomSetup();
+    }
+  });
+
+  document.getElementById('roomSetup').classList.add('hidden');
+  document.getElementById('waitingArea').classList.remove('hidden');
+  document.getElementById('currentRoomId').textContent = roomId;
+};
+
+window.selectBoardSize = async function(size) {
+  SIZE = size;
+  initBoard();
+  
+  // ゲーム状態をFirebaseに保存
+  await update(ref(database, `rooms/${currentRoomId}`), {
+    boardSize: SIZE,
+    gameState: {
+      board: board,
+      current: current,
+      boardHistory: boardHistory
+    }
+  });
+
+  document.getElementById('boardSelection').classList.add('hidden');
+};
+
+window.leaveRoom = async function() {
+  if (currentRoomId) {
+    if (isHost) {
+      // ホストはルームを削除
+      await remove(ref(database, `rooms/${currentRoomId}`));
+    } else {
+      // ゲストは自分の情報を削除
+      await update(ref(database, `rooms/${currentRoomId}`), {
+        guest: null,
+        guestConnected: false
+      });
+    }
+  }
+  resetToRoomSetup();
+};
+
+function resetToRoomSetup() {
+  currentRoomId = null;
+  myColor = null;
+  isHost = false;
+  document.getElementById('roomSetup').classList.remove('hidden');
+  document.getElementById('boardSelection').classList.add('hidden');
+  document.getElementById('waitingArea').classList.add('hidden');
+  document.getElementById('gameArea').classList.add('hidden');
+}
+
+function showError(msg) {
+  const errorEl = document.getElementById('roomError');
+  errorEl.textContent = msg;
+  errorEl.classList.remove('hidden');
+  setTimeout(() => errorEl.classList.add('hidden'), 3000);
+}
+
+function loadGameState(roomData) {
+  if (!roomData.gameState) return;
+
+  SIZE = roomData.boardSize;
+  board = roomData.gameState.board;
+  current = roomData.gameState.current;
+  boardHistory = roomData.gameState.boardHistory || [];
+
+  document.getElementById('waitingArea').classList.add('hidden');
+  document.getElementById('gameArea').classList.remove('hidden');
+  document.getElementById('gameRoomId').textContent = currentRoomId;
+  document.getElementById('yourColor').textContent = myColor === 1 ? '黒' : '白';
+  
+  // 対戦相手の接続状態
+  const opponentConnected = myColor === 1 ? roomData.guestConnected : roomData.hostConnected;
+  document.getElementById('opponentStatus').textContent = opponentConnected ? '接続中' : '切断';
+
+  render();
+  updateMessage();
+}
+
+async function syncGameState() {
+  if (!currentRoomId) return;
+  
+  await update(ref(database, `rooms/${currentRoomId}/gameState`), {
+    board: board,
+    current: current,
+    boardHistory: boardHistory
+  });
+}
+
+// ============================================
+// ゲームロジック
+// ============================================
+function initBoard() {
+  board = Array.from({length: SIZE}, () => Array(SIZE).fill(0));
+  const center = Math.floor(SIZE / 2);
+  board[center-1][center-1] = -1;
+  board[center-1][center] = 1;
+  board[center][center-1] = 1;
+  board[center][center] = -1;
+  current = 1;
+  boardHistory = [JSON.stringify(board)];
+  messageEl.classList.remove('game-over');
+}
+
+function render() {
+  boardEl.innerHTML = '';
+  boardEl.className = `board size-${SIZE}`;
+  const valid = getValidMoves(board, current);
+  const isMyTurn = current === myColor;
+
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      const cell = document.createElement('div');
+      cell.className = `cell size-${SIZE}`;
+      if (board[r][c] !== 0) {
+        const p = document.createElement('div');
+        p.className = `piece size-${SIZE} ` + (board[r][c] === 1 ? 'black' : 'white');
+        cell.appendChild(p);
+      } else if (valid[r][c] && !animating && isMyTurn) {
+        cell.classList.add(current === 1 ? 'valid-black' : 'valid-white');
+      }
+      if (!animating && isMyTurn) {
+        cell.addEventListener('click', () => onCellClick(r, c));
+      }
+      boardEl.appendChild(cell);
+    }
+  }
+  const counts = countPieces(board);
+  blackCountEl.textContent = counts.black;
+  whiteCountEl.textContent = counts.white;
+}
+
+function updateMessage() {
+  const isMyTurn = current === myColor;
+  if (isMyTurn) {
+    messageEl.textContent = 'あなたの手番です';
+  } else {
+    messageEl.textContent = '相手の手番です';
+  }
+}
+
+function inBounds(r, c) {
+  return r >= 0 && r < SIZE && c >= 0 && c < SIZE;
+}
+
+const DIRS = [[-1,0], [1,0], [0,-1], [0,1], [-1,-1], [-1,1], [1,-1], [1,1]];
+
+function getValidMoves(bd, player) {
+  const valid = Array.from({length: SIZE}, () => Array(SIZE).fill(false));
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (bd[r][c] !== 0) continue;
+      for (const [dr, dc] of DIRS) {
+        let rr = r + dr, cc = c + dc, cnt = 0;
+        while (inBounds(rr, cc) && bd[rr][cc] === -player) {
+          rr += dr;
+          cc += dc;
+          cnt++;
+        }
+        if (cnt > 0 && inBounds(rr, cc) && bd[rr][cc] === player) {
+          valid[r][c] = true;
+          break;
+        }
+      }
+    }
+  }
+  return valid;
+}
+
+function applyMove(r, c, player) {
+  board[r][c] = player;
+  for (const [dr, dc] of DIRS) {
+    let rr = r + dr, cc = c + dc, toFlip = [];
+    while (inBounds(rr, cc) && board[rr][cc] === -player) {
+      toFlip.push([rr, cc]);
+      rr += dr;
+      cc += dc;
+    }
+    if (inBounds(rr, cc) && board[rr][cc] === player) {
+      for (const [fr, fc] of toFlip) board[fr][fc] = player;
+    }
+  }
+}
+
+function countPieces(bd) {
+  let black = 0, white = 0;
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (bd[r][c] === 1) black++;
+      else if (bd[r][c] === -1) white++;
+    }
+  }
+  return {black, white};
+}
+
+async function onCellClick(r, c) {
+  if (animating || current !== myColor) return;
+  const valid = getValidMoves(board, current);
+  if (!valid[r][c]) return;
+  
+  applyMove(r, c, current);
+  render();
+  await endTurn();
+}
+
+async function endTurn() {
+  if (checkGameEnd()) {
+    await syncGameState();
+    return;
+  }
+  
+  current = -current;
+  const valid = getValidMoves(board, current);
+  
+  if (!valid.flat().some(v => v)) {
+    messageEl.textContent = (current === 1 ? '黒' : '白') + 'は置ける場所がありません。重力をかける向きを選択してください。';
+    render();
+    updateGravityButtons();
+
+    const anyGravityEnabled = Array.from(gravityBtns).some(btn => !btn.disabled);
+    if (!anyGravityEnabled) {
+      messageEl.textContent = (current === 1 ? '黒' : '白') + 'は置けず、重力もかけられません。スキップします。';
+      setTimeout(async () => {
+        await endTurn();
+      }, 1500);
+      return;
+    }
+  } else {
+    updateMessage();
+    render();
+  }
+  
+  await syncGameState();
+  
+  if (checkGameEnd()) {
+    await syncGameState();
+    return;
+  }
+}
+
+async function applyGravity(dir) {
+  if (current !== myColor) return;
+  
+  animating = true;
+  setButtons(false);
+  const delay = 50;
+  
+  while (true) {
+    let stepMoved = false;
+    if (dir === 'down') {
+      for (let r = SIZE - 2; r >= 0; r--) {
+        for (let c = 0; c < SIZE; c++) {
+          if (board[r][c] !== 0 && board[r+1][c] === 0) {
+            board[r+1][c] = board[r][c];
+            board[r][c] = 0;
+            stepMoved = true;
+          }
+        }
+      }
+    } else if (dir === 'up') {
+      for (let r = 1; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+          if (board[r][c] !== 0 && board[r-1][c] === 0) {
+            board[r-1][c] = board[r][c];
+            board[r][c] = 0;
+            stepMoved = true;
+          }
+        }
+      }
+    } else if (dir === 'left') {
+      for (let c = 1; c < SIZE; c++) {
+        for (let r = 0; r < SIZE; r++) {
+          if (board[r][c] !== 0 && board[r][c-1] === 0) {
+            board[r][c-1] = board[r][c];
+            board[r][c] = 0;
+            stepMoved = true;
+          }
+        }
+      }
+    } else if (dir === 'right') {
+      for (let c = SIZE - 2; c >= 0; c--) {
+        for (let r = 0; r < SIZE; r++) {
+          if (board[r][c] !== 0 && board[r][c+1] === 0) {
+            board[r][c+1] = board[r][c];
+            board[r][c] = 0;
+            stepMoved = true;
+          }
+        }
+      }
+    }
+    if (!stepMoved) break;
+    render();
+    await new Promise(res => setTimeout(res, delay));
+  }
+  
+  animating = false;
+  boardHistory.push(JSON.stringify(board));
+  messageEl.textContent = (current === 1 ? '黒' : '白') + 'が重力をかけました。';
+  setButtons(true);
+  
+  if (!checkGameEnd()) {
+    await endTurn();
+  } else {
+    await syncGameState();
+  }
+}
+
+function setButtons(enabled) {
+  const isMyTurn = current === myColor;
+  gravityBtns.forEach(btn => btn.disabled = !enabled || !isMyTurn);
+  if (enabled && isMyTurn) updateGravityButtons();
+}
+
+function simulateGravity(bd, dir) {
+  let testBoard = bd.map(r => r.slice());
+  let moved = false;
+  let iterations = 0;
+  while (iterations < 100) {
+    let stepMoved = false;
+    if (dir === 'down') {
+      for (let r = SIZE - 2; r >= 0; r--) {
+        for (let c = 0; c < SIZE; c++) {
+          if (testBoard[r][c] !== 0 && testBoard[r+1][c] === 0) {
+            testBoard[r+1][c] = testBoard[r][c];
+            testBoard[r][c] = 0;
+            stepMoved = true;
+          }
+        }
+      }
+    } else if (dir === 'up') {
+      for (let r = 1; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+          if (testBoard[r][c] !== 0 && testBoard[r-1][c] === 0) {
+            testBoard[r-1][c] = testBoard[r][c];
+            testBoard[r][c] = 0;
+            stepMoved = true;
+          }
+        }
+      }
+    } else if (dir === 'left') {
+      for (let c = 1; c < SIZE; c++) {
+        for (let r = 0; r < SIZE; r++) {
+          if (testBoard[r][c] !== 0 && testBoard[r][c-1] === 0) {
+            testBoard[r][c-1] = testBoard[r][c];
+            testBoard[r][c] = 0;
+            stepMoved = true;
+          }
+        }
+      }
+    } else if (dir === 'right') {
+      for (let c = SIZE - 2; c >= 0; c--) {
+        for (let r = 0; r < SIZE; r++) {
+          if (testBoard[r][c] !== 0 && testBoard[r][c+1] === 0) {
+            testBoard[r][c+1] = testBoard[r][c];
+            testBoard[r][c] = 0;
+            stepMoved = true;
+          }
+        }
+      }
+    }
+    if (!stepMoved) break;
+    moved = true;
+    iterations++;
+  }
+  return {testBoard, moved};
+}
+
+function updateGravityButtons() {
+  gravityBtns.forEach(btn => {
+    const testDir = btn.dataset.dir;
+    const {testBoard, moved} = simulateGravity(board, testDir);
+    const testBoardStr = JSON.stringify(testBoard);
+    if (!moved || boardHistory.includes(testBoardStr)) {
+      btn.disabled = true;
+    } else {
+      btn.disabled = false;
+    }
+  });
+}
+
+function checkGameEnd() {
+  const counts = countPieces(board);
+  const validBlack = getValidMoves(board, 1);
+  const validWhite = getValidMoves(board, -1);
+  const blackCan = validBlack.flat().some(v => v);
+  const whiteCan = validWhite.flat().some(v => v);
+  const filled = counts.black + counts.white === SIZE * SIZE;
+  
+  if (filled || (!blackCan && !whiteCan)) {
+    let msg = '';
+    if (counts.black > counts.white) {
+      msg = '黒の勝ち！ (' + counts.black + ' 対 ' + counts.white + ')';
+    } else if (counts.white > counts.black) {
+      msg = '白の勝ち！ (' + counts.white + ' 対 ' + counts.black + ')';
+    } else {
+      msg = '引き分け！ (' + counts.black + ' 対 ' + counts.white + ')';
+    }
+    messageEl.textContent = msg;
+    messageEl.classList.add('game-over');
+    return true;
+  }
+  return false;
+}
+
+// ============================================
+// イベントリスナー
+// ============================================
+document.getElementById('leaveGameBtn').addEventListener('click', leaveRoom);
+
+gravityBtns.forEach(btn => btn.addEventListener('click', () => {
+  if (!animating && current === myColor) {
+    applyGravity(btn.dataset.dir);
+  }
+}));
