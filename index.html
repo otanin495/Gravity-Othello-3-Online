@@ -436,8 +436,8 @@ button:disabled {
     <h2>オンライン対戦</h2>
     <input type="text" id="roomIdInput" placeholder="ルームID（英数字）" maxlength="20">
     <div class="room-buttons">
-      <button onclick="createRoom()">ルーム作成</button>
-      <button onclick="joinRoom()">ルーム参加</button>
+      <button id="createRoomBtn">ルーム作成</button>
+      <button id="joinRoomBtn">ルーム参加</button>
     </div>
     <p id="roomError" class="error-message hidden"></p>
   </div>
@@ -445,9 +445,9 @@ button:disabled {
   <!-- 盤面選択画面（ホストのみ） -->
   <div id="boardSelection" class="board-selection hidden">
     <p>盤面サイズを選択してください</p>
-    <button class="size-button" onclick="selectBoardSize(4)">4×4盤</button>
-    <button class="size-button" onclick="selectBoardSize(6)">6×6盤</button>
-    <button class="size-button" onclick="selectBoardSize(8)">8×8盤</button>
+    <button class="size-button" data-size="4">4×4盤</button>
+    <button class="size-button" data-size="6">6×6盤</button>
+    <button class="size-button" data-size="8">8×8盤</button>
   </div>
 
   <!-- 待機画面 -->
@@ -455,7 +455,7 @@ button:disabled {
     <h2>対戦相手を待っています...</h2>
     <p>ルームID: <strong id="currentRoomId"></strong></p>
     <p>このIDを相手に共有してください</p>
-    <button onclick="leaveRoom()">キャンセル</button>
+    <button id="cancelWaitBtn">キャンセル</button>
   </div>
 
   <!-- ゲーム画面 -->
@@ -504,9 +504,14 @@ button:disabled {
 // ============================================
 // Firebase設定（ここに自分の設定を入れてください）
 // ============================================
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getDatabase, ref, set, onValue, update, remove, get, onDisconnect } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyAcEqe3EbiYvpbNRNKZB2aP-3sQHgykPos",
   authDomain: "gravity-othello-3-online.firebaseapp.com",
@@ -518,8 +523,9 @@ const firebaseConfig = {
   measurementId: "G-RSC3V6JFJL"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
+const analytics = getAnalytics(app);
 
 // ============================================
 // グローバル変数
@@ -531,8 +537,9 @@ let animating = false;
 let boardHistory = [];
 let currentRoomId = null;
 let myPlayerId = null;
-let myColor = null; // 1: 黒, -1: 白
+let myColor = null;
 let isHost = false;
+let roomListener = null;
 
 const boardEl = document.getElementById('board');
 const blackCountEl = document.getElementById('blackCount');
@@ -540,13 +547,12 @@ const whiteCountEl = document.getElementById('whiteCount');
 const messageEl = document.getElementById('message');
 const gravityBtns = document.querySelectorAll('.gravityBtn');
 
-// プレイヤーIDを生成
 myPlayerId = 'player_' + Math.random().toString(36).substr(2, 9);
 
 // ============================================
 // ルーム管理
 // ============================================
-window.createRoom = async function() {
+async function createRoom() {
   const roomId = document.getElementById('roomIdInput').value.trim();
   if (!roomId) {
     showError('ルームIDを入力してください');
@@ -568,9 +574,8 @@ window.createRoom = async function() {
 
   currentRoomId = roomId;
   isHost = true;
-  myColor = 1; // ホストは黒
+  myColor = 1;
 
-  // ルーム作成
   await set(roomRef, {
     host: myPlayerId,
     guest: null,
@@ -580,21 +585,16 @@ window.createRoom = async function() {
     guestConnected: false
   });
 
-  // 切断時の処理
   onDisconnect(ref(database, `rooms/${roomId}/hostConnected`)).set(false);
 
-  // ゲストの参加を監視
-  onValue(roomRef, (snapshot) => {
+  roomListener = onValue(roomRef, (snapshot) => {
     const data = snapshot.val();
     if (data && data.guest && !data.gameState) {
-      // ゲストが参加したら盤面選択へ
       document.getElementById('waitingArea').classList.add('hidden');
       document.getElementById('boardSelection').classList.remove('hidden');
     } else if (data && data.gameState) {
-      // ゲーム開始
       loadGameState(data);
     } else if (!data) {
-      // ルームが削除された
       alert('ルームが削除されました');
       resetToRoomSetup();
     }
@@ -603,9 +603,9 @@ window.createRoom = async function() {
   document.getElementById('roomSetup').classList.add('hidden');
   document.getElementById('waitingArea').classList.remove('hidden');
   document.getElementById('currentRoomId').textContent = roomId;
-};
+}
 
-window.joinRoom = async function() {
+async function joinRoom() {
   const roomId = document.getElementById('roomIdInput').value.trim();
   if (!roomId) {
     showError('ルームIDを入力してください');
@@ -628,19 +628,16 @@ window.joinRoom = async function() {
 
   currentRoomId = roomId;
   isHost = false;
-  myColor = -1; // ゲストは白
+  myColor = -1;
 
-  // ゲストとして参加
   await update(roomRef, {
     guest: myPlayerId,
     guestConnected: true
   });
 
-  // 切断時の処理
   onDisconnect(ref(database, `rooms/${roomId}/guestConnected`)).set(false);
 
-  // ゲーム状態を監視
-  onValue(roomRef, (snapshot) => {
+  roomListener = onValue(roomRef, (snapshot) => {
     const data = snapshot.val();
     if (data && data.gameState) {
       loadGameState(data);
@@ -653,13 +650,12 @@ window.joinRoom = async function() {
   document.getElementById('roomSetup').classList.add('hidden');
   document.getElementById('waitingArea').classList.remove('hidden');
   document.getElementById('currentRoomId').textContent = roomId;
-};
+}
 
-window.selectBoardSize = async function(size) {
+async function selectBoardSize(size) {
   SIZE = size;
   initBoard();
   
-  // ゲーム状態をFirebaseに保存
   await update(ref(database, `rooms/${currentRoomId}`), {
     boardSize: SIZE,
     gameState: {
@@ -670,15 +666,13 @@ window.selectBoardSize = async function(size) {
   });
 
   document.getElementById('boardSelection').classList.add('hidden');
-};
+}
 
-window.leaveRoom = async function() {
+async function leaveRoom() {
   if (currentRoomId) {
     if (isHost) {
-      // ホストはルームを削除
       await remove(ref(database, `rooms/${currentRoomId}`));
     } else {
-      // ゲストは自分の情報を削除
       await update(ref(database, `rooms/${currentRoomId}`), {
         guest: null,
         guestConnected: false
@@ -686,9 +680,13 @@ window.leaveRoom = async function() {
     }
   }
   resetToRoomSetup();
-};
+}
 
 function resetToRoomSetup() {
+  if (roomListener) {
+    roomListener();
+    roomListener = null;
+  }
   currentRoomId = null;
   myColor = null;
   isHost = false;
@@ -718,7 +716,6 @@ function loadGameState(roomData) {
   document.getElementById('gameRoomId').textContent = currentRoomId;
   document.getElementById('yourColor').textContent = myColor === 1 ? '黒' : '白';
   
-  // 対戦相手の接続状態
   const opponentConnected = myColor === 1 ? roomData.guestConnected : roomData.hostConnected;
   document.getElementById('opponentStatus').textContent = opponentConnected ? '接続中' : '切断';
 
@@ -1054,7 +1051,14 @@ function checkGameEnd() {
 // ============================================
 // イベントリスナー
 // ============================================
+document.getElementById('createRoomBtn').addEventListener('click', createRoom);
+document.getElementById('joinRoomBtn').addEventListener('click', joinRoom);
+document.getElementById('cancelWaitBtn').addEventListener('click', leaveRoom);
 document.getElementById('leaveGameBtn').addEventListener('click', leaveRoom);
+
+document.querySelectorAll('.size-button').forEach(btn => {
+  btn.addEventListener('click', () => selectBoardSize(parseInt(btn.dataset.size)));
+});
 
 gravityBtns.forEach(btn => btn.addEventListener('click', () => {
   if (!animating && current === myColor) {
